@@ -1,0 +1,24 @@
+{
+  "name": "bamazon-prime",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bamazonCustomer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ches-CC/bamazon-prime.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ches-CC/bamazon-prime/issues"
+  },
+  "homepage": "https://github.com/Ches-CC/bamazon-prime#readme",
+  "dependencies": {
+    "cli-table": "^0.3.1"
+  },
+  "devDependencies": {}
+}
