@@ -1,4 +1,4 @@
-DROP DATABASE IF EXISTS bamazon_primep;
+DROP DATABASE IF EXISTS bamazon_prime;
 
 CREATE DATABASE bamazon_prime;
 
