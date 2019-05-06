@@ -38,7 +38,7 @@ connection.connect(function(err){
     // console.log("Successfully connected as id: " + connection.threadId);
     listAllProducts();
     prodInfoToArray();
-
+    let dbItemQuery = "";
     //////Beginning Inquirer Prompts Here to experiment with the L O G I C
     prompt([{
         type: "input",
@@ -53,6 +53,7 @@ connection.connect(function(err){
             return answers.product_inquiry === "Yes";
         }
     },
+    //This one below belongs in the .then portion bc its not a question
     {
         type: "input",
         message: "Then why are you here, wasting my time?!",
@@ -72,36 +73,61 @@ connection.connect(function(err){
     },
     {
         type: "input",
-        message: "Aw shucks--that's not a valid Product ID, please come back again!",
+        message: "Aw shucks--that's not a valid Product ID. \nPlease enter take another look at our product selection!",
         name: "wrong_id",
         when: function(answers) {
             // console.log("Very nice LOL: + " + idArray + " & the input was: " + answers.productID_prompt);
             return idArray.includes(parseInt(answers.productID_prompt)) === false;
         }
     },
-    {
-        type: "input",
-        message: "You're all set, here is your receipt!",
-        name: "purchase_complete",
-        when: function(answers){
-            return stockArray[0] >= parseInt(answers.purchase_quantity);
-        }
-    },
-    {
-        type: "input",
-        message: "As much as we'd love to take your money, we don't have enough in stock! How embarrassing!",
-        name: "out_of_stock",
-        when: function(answers){
-            return stockArray[0] < parseInt(answers.purchase_quantity);
-        }
-    }
+    //this one below belongs in the .then portion bc it's not a question
+    // {
+    //     type: "input",
+    //     message: "You're all set, here is your receipt!",
+    //     name: "purchase_complete",
+    //     when: function(answers){
+    //         return dbItemQuery.stock_quantity >= parseInt(answers.purchase_quantity);
+    //     }
+    // },
+    // {
+    //     type: "input",
+    //     message: "As much as we'd love to take your money, we don't have enough in stock! How embarrassing! \nPlease take another look at our selection of products!",
+    //     name: "out_of_stock",
+    //     when: function(answers){
+    //         return dbItemQuery.stock_quantity < parseInt(answers.purchase_quantity);
+    //     }
+    // }
     ])
 
-    .then(function(inquirerResponse){
-        if (inquirerResponse.purchase_complete === "You're all set, here is your receipt"){
-        console.log("Insert the Receipt here: \nProduct: Name\nPrice: $XYZ.00\nQuantity: X\nTotal Price: $XYZ" + 
-        "\n& \nUpdate the Database! ...no biggie lol");
-        }else{console.log("See you next Tuesday!")}
+    .then(function(answers){
+
+        connection.query("SELECT * FROM products WHERE item_id = ?", [answers.productID_prompt], function(error, results, fields){
+            if(error){
+                console.log("Error in the ID answers query: " + error);
+                return;
+            }
+            dbItemQuery = results[0];
+            if (dbItemQuery.stock_quantity < answers.purchase_quantity){
+                console.log("We ain't got 'nuff!")
+                return;
+            }else{
+                totalPrice = dbItemQuery.price * answers.purchase_quantity;
+                console.log("Great, here is your total: $" + totalPrice);
+                let newStockQuant = (dbItemQuery.stock_quantity - answers.purchase_quantity);
+                connection.query("UPDATE products SET stock_quantity = " + newStockQuant + " WHERE item_id = " + answers.productID_prompt, function(error, results, fields){
+                    if (error){
+                        console.log("Error updating dB" + error)
+                        return;
+                    }
+                    console.log("Database stock quantity updated!");
+                    listAllProducts();
+                })
+            }
+        })
+        // if (answers.purchase_complete === "You're all set, here is your receipt"){
+        // console.log("Insert the Receipt here: \nProduct: Name\nPrice: $XYZ.00\nQuantity: X\nTotal Price: $XYZ" + 
+        // "\n& \nUpdate the Database! ...no biggie lol");
+        // }else{console.log("See you next Tuesday!")}
     })
 
 
@@ -109,9 +135,9 @@ connection.connect(function(err){
 
     //Not sure if I want to use this array method... yet
     // prodInfoToArray();
-    connection.end(function(err){
-        console.log("Connection terminated!!\n- - - - -");
-    });
+    // connection.end(function(err){
+    //     console.log("Connection terminated!!\n- - - - -");
+    // });
 });
 
 function listAllProducts(){
@@ -120,6 +146,7 @@ function listAllProducts(){
             console.log("Error with the query!-->" + error);
             return;
         }
+        table.splice(0, table.length);
         table.push([results[0].item_id, results[0].product_name, results[0].dept_name, results[0].price, results[0].stock_quantity], 
             [results[1].item_id, results[1].product_name, results[1].dept_name, results[1].price, results[1].stock_quantity]);
         console.log(table.toString());
