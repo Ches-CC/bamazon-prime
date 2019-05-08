@@ -14,8 +14,9 @@ let namesArray = [];
 let priceArray = [];
 let deptArray = [];
 
-//Qustionable Glo-Var:
+//Questionable Glo-Var(s):
 let dbResult = [];
+let dbItemQuery = [];
 
 let connection = mysql.createConnection({
     host: "localhost",
@@ -51,61 +52,72 @@ prodInfoToArray();
 //Initial Prompt function called
 questionDisplay();
 
-//Global var in which we'll store the DB product query
-let dbItemQuery = "";
-
 //Here are the Inquirer prompts; set a Timeout function to keep from overwriting the neat table I made with CLI-table
 function questionDisplay(){setTimeout(function(){prompt([{
     type: "input",
     message: "Please enter the Product ID of the product you would like to purchase",
     name: "productID_prompt",
-    //validation
-    
-},    
+    validate: function(value) {
+        var valid = !isNaN(parseFloat(value));
+        return valid || "No Number, No Service!";
+      },
+    filter: Number
+    },    
 {
     type: "input",
     message: "Very nice! How many would you like to purchase?",
     name: "purchase_quantity",
     when: function(answers) {
-        // console.log("Very nice LOL: + " + idArray + " & the input was: " + answers.productID_prompt);
         return idArray.includes(parseInt(answers.productID_prompt)) === true;
-    }
+    },
+    validate: function(value) {
+        var valid = !isNaN(parseFloat(value));
+        return valid || "That's no number! Please come back again when you're ready to get serious!";
+      },
+    filter: Number
 },
-{
-    type: "input",
-    message: "Aw shucks--that's not a valid Product ID. \nPlease enter take another look at our product selection!",
-    name: "wrong_id",
-    when: function(answers) {
-        // console.log("Very nice LOL: + " + idArray + " & the input was: " + answers.productID_prompt);
-        return idArray.includes(parseInt(answers.productID_prompt)) === false;
-    }
-},
-{
-    type: "confirm",
-    message: "Would you like to take another look at our offerings?",
-    name: "option_restart",
-    choice: ["Heck yeah!", "Naw, I'm good..."],
-    default: "Heck yeah!",
-    when: function(answers) {
-        return;
-    }
-}
+// {
+//     type: "rawlist",
+//     message: "Aw shucks--that's not a valid Product ID. \n Would you like to take another look at our product selection?",
+//     name: "wrong_id",
+//     choices: ["Heck yeah!", "Naw, I'm good..."],
+//     when: function(answers) {
+//         return idArray.includes(parseInt(answers.productID_prompt)) === false;
+//     }
+// },
+
 ])
 .then(function(answers){
-
+     
     connection.query("SELECT * FROM products WHERE item_id = ?", [answers.productID_prompt], function(error, results, fields){
         if(error){
             console.log("Error in the ID answers query: " + error);
             return;
         }
+
+        if (dbItemQuery.stock_quantity === undefined){
+            dbItemQuery.stock_quantity = 0;
+        }
+
         dbItemQuery = results[0];
+
+        if (idArray.includes(parseInt(answers.productID_prompt) === false)) {
+            console.log("We don't seem to have that ID--please come again!");
+            connection.end();
+        }
+
+        
+        // console.log("dbItemSQ: " + dbItemQuery.stock_quantity);
+
         if (dbItemQuery.stock_quantity < answers.purchase_quantity){
             console.log("As much as we'd love to take your money, we don't have enough in stock! How embarrassing!")
+            connection.end();
             return;
         }else{
-        //     //Display the total purchase amount
+            //Display the total purchase amount
             totalPrice = dbItemQuery.price * answers.purchase_quantity;
             console.log("Great, here is your total: $" + totalPrice);
+            
             //Updating database inventory
             let newStockQuant = (dbItemQuery.stock_quantity - answers.purchase_quantity);
             connection.query("UPDATE products SET stock_quantity = " + newStockQuant + " WHERE item_id = " + answers.productID_prompt, function(error, results, fields){
@@ -114,17 +126,22 @@ function questionDisplay(){setTimeout(function(){prompt([{
                     return;
                 }
                 //Confirmation that the database has been updated
-                console.log("Database stock quantity updated!");
-                // listAllProducts();
-                // prompt();
+                //TODO --Print receipt-- & --"Thanks, come again!"--
+                console.log("--------------------\n   *** RECEIPT ***\nProduct: " + dbItemQuery.product_name + "\nPrice: " + dbItemQuery.price + "\nTotal: $" + totalPrice + "\nALL SALES ARE FINAL!");
+                console.log("Thank you, come again! \n--------------------\n[Database stock quantity updated]");
+                connection.end();
             })
         }
+        // if (answers.wrong_id === "Heck yeah!"){
+        //     console.log("Heck yeah to your heck yeah!");
+        //     questionDisplay();
+        // }
     })
     // if (answers.purchase_complete === "You're all set, here is your receipt"){
     // console.log("Insert the Receipt here: \nProduct: Name\nPrice: $XYZ.00\nQuantity: X\nTotal Price: $XYZ" + 
     // "\n& \nUpdate the Database! ...no biggie lol");
     // }else{console.log("See you next Tuesday!")}
-})}, 500)};
+})}, 250)};
 
 function listAllProducts(){
     connection.query("SELECT * FROM products", function(error, results, fields){
