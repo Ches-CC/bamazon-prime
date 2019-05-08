@@ -13,6 +13,6 @@ Simply input "node bamazonCustomer.js" into the command line, then prepare yours
 
 
 
-Next up: a brief display of the updated database--be sure to keep your eyes on Row 7's Stock Quantity!
+Next up: a brief display of the updated database--be sure to keep your eyes on Row 8's Stock Quantity!
 
 ![Gif db_update](./assets/db_update.gif)
